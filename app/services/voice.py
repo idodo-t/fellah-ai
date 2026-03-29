@@ -1,11 +1,11 @@
 """
 FELLAH.AI — Voice Service
-Pipeline complet : Audio WhatsApp → Whisper → GPT-4o-mini → réponse Darija → gTTS .mp3
+Pipeline : Audio WhatsApp → Gemini (transcription + conseil) → réponse Darija → gTTS .mp3
 
 Stratégie :
-  1. Si OPENAI_API_KEY présente → pipeline réel (Whisper + GPT)
-  2. Sinon                      → mock (retourne texte Darija statique)
-  gTTS : toujours actif, génère un .mp3 en parallèle (chemin dans TTS_OUTPUT_DIR)
+  1. Si GEMINI_API_KEY présente → Gemini Flash (audio direct + réponse Darija)
+  2. Sinon                      → mock (texte Darija statique)
+  gTTS : toujours actif, génère un .mp3 (chemin dans TTS_OUTPUT_DIR)
 
 Contrat immuable :
   process_voice_darija(audio_url: str) -> str   # texte en Darija
@@ -13,12 +13,11 @@ Contrat immuable :
 """
 
 import os
+import uuid
 import logging
 import tempfile
 import urllib.request
 from dotenv import load_dotenv
-
-import uuid
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 TTS_OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "/tmp/fellah_audio")
 
 # ---------------------------------------------------------------------------
-# System prompt FELLAH (fixé, ne pas modifier)
+# System prompt FELLAH
 # ---------------------------------------------------------------------------
 SYSTEM_PROMPT = (
     "Tu es FELLAH, assistant agricole marocain expert. "
@@ -37,13 +36,9 @@ SYSTEM_PROMPT = (
 )
 
 # ---------------------------------------------------------------------------
-# Mock (aucune clé API requise)
+# Mock
 # ---------------------------------------------------------------------------
 def _mock_process(audio_url: str) -> str:
-    """
-    Retourne une réponse Darija plausible sans appel réseau.
-    Déterministe selon l'URL pour des tests reproductibles.
-    """
     responses = [
         "صاحبي، شجرة الطماطم ديالك عندها ميلديو. رش عليها بوردو 2% من الصباح. غتربح على 40,000 كيلو للهكتار بسعر 1.8 درهم.",
         "واش شفت البقع البيضاء؟ هاد الأوديوم — استعمل الكبريت المبلل. ما تخسرش محصولك، التكلفة غير 500 درهم.",
@@ -55,13 +50,19 @@ def _mock_process(audio_url: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Pipeline réel : Whisper → GPT-4o-mini
+# Pipeline Gemini : audio → transcription + réponse Darija en un seul appel
 # ---------------------------------------------------------------------------
-def _download_audio(audio_url: str) -> str:
-    """Télécharge l'audio dans un fichier temporaire, retourne le chemin."""
-    # Détecte l'extension depuis l'URL (défaut .ogg pour WhatsApp)
+def _download_audio(audio_url: str) -> tuple[str, str]:
+    """Télécharge l'audio, retourne (chemin_tmp, mime_type)."""
+    ext_mime = {
+        ".ogg": "audio/ogg",
+        ".mp3": "audio/mpeg",
+        ".wav": "audio/wav",
+        ".m4a": "audio/mp4",
+        ".amr": "audio/amr",
+    }
     ext = ".ogg"
-    for candidate in (".ogg", ".mp3", ".wav", ".m4a", ".mp4", ".amr"):
+    for candidate in ext_mime:
         if candidate in audio_url.lower():
             ext = candidate
             break
@@ -69,50 +70,36 @@ def _download_audio(audio_url: str) -> str:
     tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
     tmp.close()
     urllib.request.urlretrieve(audio_url, tmp.name)
-    return tmp.name
-
-
-def _transcribe_whisper(audio_path: str, client) -> str:
-    """Transcrit l'audio avec Whisper. Retourne le texte."""
-    with open(audio_path, "rb") as f:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=f,
-            language="ar",          # Darija est proche de l'arabe standard
-            response_format="text",
-        )
-    return transcript.strip()
-
-
-def _generate_darija_response(text: str, client) -> str:
-    """Envoie le texte transcrit à GPT-4o-mini, retourne la réponse Darija."""
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": text},
-        ],
-        max_tokens=200,
-        temperature=0.4,
-    )
-    return response.choices[0].message.content.strip()
+    return tmp.name, ext_mime.get(ext, "audio/ogg")
 
 
 def _real_process(audio_url: str) -> str:
-    """Pipeline complet avec OpenAI."""
-    from openai import OpenAI  # type: ignore
+    """Pipeline Gemini : envoie l'audio directement, reçoit la réponse Darija."""
+    from google import genai  # type: ignore
+    from google.genai import types  # type: ignore
 
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    audio_path = _download_audio(audio_url)
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    audio_path, mime_type = _download_audio(audio_url)
 
     try:
-        transcription = _transcribe_whisper(audio_path, client)
-        logger.info("Whisper transcription: %s", transcription[:80])
+        with open(audio_path, "rb") as f:
+            audio_data = f.read()
 
-        darija_reply = _generate_darija_response(transcription, client)
-        logger.info("GPT reply (Darija): %s", darija_reply[:80])
+        prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            "L'agriculteur t'a envoyé ce message vocal. "
+            "Transcris ce qu'il dit, puis réponds-lui directement en Darija."
+        )
 
-        return darija_reply
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                prompt,
+                types.Part.from_bytes(data=audio_data, mime_type=mime_type),
+            ],
+        )
+
+        return response.text.strip()
 
     finally:
         try:
@@ -122,19 +109,14 @@ def _real_process(audio_url: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Synthèse vocale gTTS (Module 4)
+# Synthèse vocale gTTS
 # ---------------------------------------------------------------------------
 def synthesize_darija(text: str) -> str:
     """
     Convertit du texte Darija en fichier audio .mp3 pour WhatsApp.
 
-    Args:
-        text: Texte en Darija marocaine
-
     Returns:
         Chemin absolu vers le fichier .mp3 généré.
-
-    Garantie : ne lève jamais d'exception — retourne chemin même si gTTS échoue (fichier vide).
     """
     os.makedirs(TTS_OUTPUT_DIR, exist_ok=True)
     filename = os.path.join(TTS_OUTPUT_DIR, f"fellah_{uuid.uuid4().hex}.mp3")
@@ -145,8 +127,7 @@ def synthesize_darija(text: str) -> str:
         tts.save(filename)
         logger.info("gTTS audio saved: %s", filename)
     except Exception as exc:
-        logger.error("gTTS a échoué (%s) — fichier audio vide créé.", exc)
-        # Crée un fichier vide pour ne pas bloquer le pipeline
+        logger.error("gTTS a échoué (%s) — fichier vide créé.", exc)
         open(filename, "wb").close()
 
     return filename
@@ -159,12 +140,6 @@ def process_voice_darija(audio_url: str) -> str:
     """
     Traite un message vocal WhatsApp et retourne une réponse en Darija.
 
-    Pipeline :
-        1. Télécharge l'audio depuis audio_url
-        2. Transcrit avec Whisper (OpenAI)
-        3. Génère un conseil agricole en Darija via GPT-4o-mini
-        4. Retourne le texte Darija
-
     Args:
         audio_url: URL publique du fichier audio (.ogg, .mp3, .wav, ...)
 
@@ -173,14 +148,14 @@ def process_voice_darija(audio_url: str) -> str:
 
     Garantie : ne lève jamais d'exception — retourne toujours un str non vide.
     """
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
-        logger.info("OPENAI_API_KEY absente — mode mock activé.")
+        logger.info("GEMINI_API_KEY absente — mode mock activé.")
         return _mock_process(audio_url)
 
     try:
         return _real_process(audio_url)
     except Exception as exc:
-        logger.error("process_voice_darija a échoué (%s) — retour mock de sécurité.", exc)
+        logger.error("process_voice_darija a échoué (%s) — retour mock.", exc)
         return _mock_process(audio_url)
