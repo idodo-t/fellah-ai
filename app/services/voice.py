@@ -1,13 +1,15 @@
 """
 FELLAH.AI — Voice Service
-Pipeline complet : Audio WhatsApp → Whisper → GPT-4o-mini → réponse Darija.
+Pipeline complet : Audio WhatsApp → Whisper → GPT-4o-mini → réponse Darija → gTTS .mp3
 
 Stratégie :
   1. Si OPENAI_API_KEY présente → pipeline réel (Whisper + GPT)
   2. Sinon                      → mock (retourne texte Darija statique)
+  gTTS : toujours actif, génère un .mp3 en parallèle (chemin dans TTS_OUTPUT_DIR)
 
 Contrat immuable :
   process_voice_darija(audio_url: str) -> str   # texte en Darija
+  synthesize_darija(text: str) -> str           # chemin vers le .mp3
 """
 
 import os
@@ -16,8 +18,12 @@ import tempfile
 import urllib.request
 from dotenv import load_dotenv
 
+import uuid
+
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+TTS_OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "/tmp/fellah_audio")
 
 # ---------------------------------------------------------------------------
 # System prompt FELLAH (fixé, ne pas modifier)
@@ -113,6 +119,37 @@ def _real_process(audio_url: str) -> str:
             os.remove(audio_path)
         except OSError:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Synthèse vocale gTTS (Module 4)
+# ---------------------------------------------------------------------------
+def synthesize_darija(text: str) -> str:
+    """
+    Convertit du texte Darija en fichier audio .mp3 pour WhatsApp.
+
+    Args:
+        text: Texte en Darija marocaine
+
+    Returns:
+        Chemin absolu vers le fichier .mp3 généré.
+
+    Garantie : ne lève jamais d'exception — retourne chemin même si gTTS échoue (fichier vide).
+    """
+    os.makedirs(TTS_OUTPUT_DIR, exist_ok=True)
+    filename = os.path.join(TTS_OUTPUT_DIR, f"fellah_{uuid.uuid4().hex}.mp3")
+
+    try:
+        from gtts import gTTS  # type: ignore
+        tts = gTTS(text=text, lang="ar", slow=False)
+        tts.save(filename)
+        logger.info("gTTS audio saved: %s", filename)
+    except Exception as exc:
+        logger.error("gTTS a échoué (%s) — fichier audio vide créé.", exc)
+        # Crée un fichier vide pour ne pas bloquer le pipeline
+        open(filename, "wb").close()
+
+    return filename
 
 
 # ---------------------------------------------------------------------------
