@@ -155,3 +155,9 @@ def analyze_leaf(image_url: str) -> dict:
             "confidence": 0.0,
             "treatment":  DEFAULT_TREATMENT,
         }
+
+
+# Alias pour compatibilité avec main.py de B
+def predict_disease(image_url: str) -> dict:
+    """Alias de analyze_leaf() — même résultat, même format."""
+    return analyze_leaf(image_url)
