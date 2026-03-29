@@ -2,7 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 ultralytics
-openai
+google-genai
 twilio
 gtts
 pydub
