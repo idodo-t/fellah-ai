@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+ultralytics
+openai
+twilio
+gtts
+pydub
+python-dotenv
+python-multipart
