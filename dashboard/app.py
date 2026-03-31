@@ -445,7 +445,9 @@ def render_table(df: pd.DataFrame):
         sick   = d != "saine"
         cls    = "b-red" if sick else "b-green"
         statut = "&#128308; Urgent" if sick else "&#128994; OK"
-        conf   = int(float(r["confidence_score"]) * 100)
+        raw    = float(r["confidence_score"])
+        # Normalise : si valeur > 1 elle est déjà en % (ex: 72.4), sinon décimal (ex: 0.724)
+        conf   = min(100, int(raw if raw > 1 else raw * 100))
         bar_c  = C_RED if sick else C_GREEN
         ts     = pd.to_datetime(r["timestamp"]).strftime("%d/%m %H:%M")
         name   = str(r.get("farmer_name", r.get("farmer_phone", "?")))[:18]
