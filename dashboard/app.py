@@ -663,11 +663,11 @@ def render_sidebar(df_raw: pd.DataFrame, online: bool) -> pd.DataFrame:
     # Actions rapides
     sb.markdown("**&#9889; Actions rapides**")
     if sb.button("&#128242; Tester pipeline WhatsApp"):
-        st.toast("Pipeline WhatsApp OK — 3s end-to-end", icon="&#128242;")
+        st.toast("Pipeline WhatsApp OK — 3s end-to-end", icon="📱")
     if sb.button("&#128196; Generer rapport PDF"):
-        st.toast("Rapport PDF (en developpement)", icon="&#128196;")
+        st.toast("Rapport PDF (en developpement)", icon="📄")
     if sb.button("&#128269; Voir logs API"):
-        st.toast(f"API docs : {API_URL}/docs", icon="&#128269;")
+        st.toast(f"API docs : {API_URL}/docs", icon="🔍")
     if sb.button("&#128260; Rafraichir"):
         st.cache_data.clear()
         st.rerun()
