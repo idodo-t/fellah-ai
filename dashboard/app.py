@@ -72,6 +72,8 @@ _CSS = """
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* ── HEADER ─────────────────────────────────────────────── */
 .fellah-header {
     background: linear-gradient(135deg, #7C3A1E 0%, #2D6A4F 100%);
     padding: 26px 30px 18px; border-radius: 14px;
@@ -81,9 +83,10 @@ html, body, [class*="css"] {
     font-family: 'Playfair Display', Georgia, serif;
     font-size: 2.4rem; font-weight: 800; color: #fff; margin: 0;
 }
-.fellah-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.78); margin-top: 4px; }
-.fellah-meta    { font-size: 0.76rem; color: rgba(255,255,255,0.55); margin-top: 8px; }
+.fellah-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.82); margin-top: 4px; }
+.fellah-meta    { font-size: 0.76rem; color: rgba(255,255,255,0.58); margin-top: 8px; }
 
+/* ── PULSE ──────────────────────────────────────────────── */
 @keyframes pulse-anim { 0%,100%{opacity:1} 50%{opacity:0.35} }
 .pulse-dot {
     display: inline-block; width: 9px; height: 9px;
@@ -93,87 +96,138 @@ html, body, [class*="css"] {
 .pulse-green { background: #52c41a; }
 .pulse-red   { background: #ff4d4f; }
 
+/* ── KPI CARDS — dark mode ──────────────────────────────── */
 .kpi-card {
-    background: #fff; border-radius: 12px;
-    padding: 18px 16px; border-left: 5px solid #2D6A4F;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 8px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px; padding: 18px 16px;
+    border-left: 5px solid #2D6A4F;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    margin-bottom: 8px;
 }
 .kpi-icon  { font-size: 1.4rem; }
-.kpi-val   { font-size: 1.85rem; font-weight: 800; color: #111; line-height: 1.1; }
-.kpi-lbl   { font-size: 0.72rem; color: #888; font-weight: 500; margin-top: 2px; }
+.kpi-val   { font-size: 1.85rem; font-weight: 800; color: #f0f0f0; line-height: 1.1; }
+.kpi-lbl   { font-size: 0.72rem; color: rgba(255,255,255,0.50); font-weight: 500; margin-top: 2px; }
 .kpi-delta { font-size: 0.70rem; font-weight: 600; margin-top: 3px; }
 
+/* ── LIVE BAR ────────────────────────────────────────────── */
 .live-bar {
-    background: #F5F3EE; border-radius: 8px;
-    padding: 9px 14px; font-size: 0.80rem; color: #555;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 8px; padding: 9px 14px;
+    font-size: 0.80rem; color: rgba(255,255,255,0.65);
     margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 20px;
 }
-.live-bar b { color: #2D6A4F; }
+.live-bar b { color: #74c69d; }
 
+/* ── ALERT BANNERS ───────────────────────────────────────── */
 .alert-epid {
-    background: rgba(163,45,45,0.07); border: 1.5px solid #A32D2D;
+    background: rgba(163,45,45,0.18);
+    border: 1.5px solid rgba(220,80,80,0.6);
     border-radius: 10px; padding: 14px 18px; margin: 10px 0;
 }
+.alert-epid strong { color: #ff7875 !important; }
+.alert-epid p      { color: #f0c0c0 !important; }
+
 .alert-safe {
-    background: rgba(45,106,79,0.07); border: 1.5px solid #2D6A4F;
+    background: rgba(45,106,79,0.18);
+    border: 1.5px solid rgba(80,180,120,0.5);
     border-radius: 10px; padding: 12px 18px; margin: 10px 0;
 }
+.alert-safe strong { color: #95d5b2 !important; }
+.alert-safe span   { color: rgba(255,255,255,0.70) !important; }
 
+/* ── TABLE ───────────────────────────────────────────────── */
 .diag-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .diag-table th {
-    background: #F5F3EE; color: #666; padding: 9px 11px;
-    text-align: left; font-weight: 600; font-size: 0.73rem;
-    border-bottom: 2px solid #E8E4DC; text-transform: uppercase;
-    letter-spacing: 0.04em;
+    background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55);
+    padding: 9px 11px; text-align: left; font-weight: 600; font-size: 0.73rem;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    text-transform: uppercase; letter-spacing: 0.04em;
 }
-.diag-table td { padding: 9px 11px; border-bottom: 1px solid #F0EDE8; color: #333; }
-.diag-table tr:hover td { background: #FAFAF8; }
+.diag-table td {
+    padding: 9px 11px; color: rgba(255,255,255,0.82);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.diag-table tr:hover td { background: rgba(255,255,255,0.04); }
 
+/* ── BADGES ──────────────────────────────────────────────── */
 .badge {
     display: inline-block; padding: 2px 9px; border-radius: 20px;
     font-size: 0.70rem; font-weight: 700; letter-spacing: 0.02em;
 }
-.b-red   { background: rgba(163,45,45,0.12); color: #A32D2D; border: 1px solid rgba(163,45,45,0.3); }
-.b-green { background: rgba(45,106,79,0.12); color: #2D6A4F; border: 1px solid rgba(45,106,79,0.3); }
+.b-red   { background: rgba(163,45,45,0.30); color: #ff9999; border: 1px solid rgba(220,80,80,0.40); }
+.b-green { background: rgba(45,106,79,0.30); color: #95d5b2; border: 1px solid rgba(80,180,120,0.40); }
 
-.pbar-wrap { background: #eee; border-radius: 4px; height: 6px; width: 70px; display: inline-block; vertical-align: middle; margin-left: 5px; }
+/* ── PROGRESS BAR ────────────────────────────────────────── */
+.pbar-wrap {
+    background: rgba(255,255,255,0.12); border-radius: 4px;
+    height: 6px; width: 70px; display: inline-block;
+    vertical-align: middle; margin-left: 5px;
+}
 .pbar-fill { height: 6px; border-radius: 4px; }
 
-section[data-testid="stSidebar"] { background: #F5F3EE !important; }
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background: #1a1e2e !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
+}
+section[data-testid="stSidebar"] * { color: rgba(255,255,255,0.85) !important; }
+section[data-testid="stSidebar"] label { color: rgba(255,255,255,0.60) !important; font-size: 0.80rem !important; }
+section[data-testid="stSidebar"] .stSelectbox > div > div {
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    color: #fff !important; border-radius: 8px !important;
+}
+section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.10) !important; }
+section[data-testid="stSidebar"] .stButton > button {
+    background: #2D6A4F !important; color: #fff !important;
+    border: none !important; border-radius: 8px !important;
+    width: 100% !important; font-weight: 600 !important;
+    padding: 8px !important; transition: background 0.2s !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+    background: #1f4d39 !important;
+}
+section[data-testid="stSidebar"] .stCheckbox label {
+    color: rgba(255,255,255,0.70) !important;
+}
 
-.status-list { list-style: none; padding: 0; margin: 0; font-size: 0.82rem; color: #444; }
-.status-list li { display: flex; align-items: center; gap: 7px; padding: 4px 0; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* ── STATUS LIST ─────────────────────────────────────────── */
+.status-list { list-style: none; padding: 0; margin: 0; font-size: 0.82rem; }
+.status-list li { display: flex; align-items: center; gap: 7px; padding: 4px 0; color: rgba(255,255,255,0.75); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .dg { background: #52c41a; }
 .dr { background: #ff4d4f; }
 .da { background: #BA7517; }
 
-.wa-screen {
-    background: #E5DDD5; padding: 14px; border-radius: 12px; margin-top: 6px;
-}
+/* ── WHATSAPP BUBBLE ─────────────────────────────────────── */
+.wa-screen { background: #1a2a1a; padding: 14px; border-radius: 12px; margin-top: 6px; }
 .wa-msg-out {
-    background: #fff; border-radius: 12px 12px 0 12px;
+    background: rgba(255,255,255,0.10); border-radius: 12px 12px 0 12px;
     padding: 9px 13px; max-width: 220px; margin-bottom: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.83rem; color: #111;
+    font-size: 0.83rem; color: rgba(255,255,255,0.85);
 }
 .wa-msg-in {
-    background: #DCF8C6; border-radius: 0 12px 12px 12px;
+    background: #1e3d1e; border-radius: 0 12px 12px 12px;
     padding: 9px 13px; max-width: 320px; margin-left: auto;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.83rem;
-    color: #111; line-height: 1.55;
+    font-size: 0.83rem; color: #c8f0c8; line-height: 1.55;
 }
-.wa-time { font-size: 0.65rem; color: #999; text-align: right; margin-top: 4px; }
-.wa-label { font-size: 0.68rem; color: #888; margin-bottom: 4px; }
+.wa-time  { font-size: 0.65rem; color: rgba(255,255,255,0.40); text-align: right; margin-top: 4px; }
+.wa-label { font-size: 0.68rem; color: rgba(255,255,255,0.40); margin-bottom: 4px; }
 
+/* ── TIMELINE HASSAN ─────────────────────────────────────── */
 .tl-wrap { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
 .tl-box {
-    flex: 1; background: #F5F3EE; border-radius: 10px;
-    padding: 14px; text-align: center;
+    flex: 1; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px; padding: 14px; text-align: center;
 }
-.tl-box.after { background: #2D6A4F; color: #fff; }
-.tl-amt  { font-size: 1.45rem; font-weight: 800; }
-.tl-lbl  { font-size: 0.70rem; margin-top: 3px; opacity: 0.7; }
-.tl-arr  { font-size: 1.6rem; color: #2D6A4F; }
+.tl-box.after { background: #2D6A4F; border-color: #2D6A4F; color: #fff; }
+.tl-amt { font-size: 1.45rem; font-weight: 800; color: #f0f0f0; }
+.tl-box.after .tl-amt { color: #fff; }
+.tl-lbl { font-size: 0.70rem; margin-top: 3px; color: rgba(255,255,255,0.55); }
+.tl-arr { font-size: 1.6rem; color: #74c69d; }
 """
 
 st.markdown(f"<style>{_CSS}</style>", unsafe_allow_html=True)
@@ -344,7 +398,7 @@ def render_alert(taux: float, df: pd.DataFrame):
         st.markdown(f"""
         <div class="alert-epid">
           <strong style="color:{C_RED};font-size:1.05rem">&#128680; ALERTE EPIDEMIE</strong>
-          <p style="margin:6px 0 0;color:#333;font-size:.88rem">
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.80);font-size:.88rem">
             <strong>{sick_farmers} fermes infectees sur {total}</strong>
             dans la region <strong>{region}</strong>.
             Taux : <strong>{taux}%</strong> &#8212; Action immediate requise.
@@ -356,7 +410,7 @@ def render_alert(taux: float, df: pd.DataFrame):
         st.markdown(f"""
         <div class="alert-safe">
           <strong style="color:{C_GREEN}">&#10003; Situation normale</strong>
-          &#8212; <span style="color:#444;font-size:.87rem">
+          &#8212; <span style="color:rgba(255,255,255,0.65);font-size:.87rem">
           Cultures sous surveillance &#183; {taux}% de maladies
           </span>
         </div>""", unsafe_allow_html=True)
