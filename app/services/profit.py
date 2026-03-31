@@ -1,112 +1,75 @@
 """
 FELLAH.AI — Profit Service
-Calculs financiers agricoles marocains.
+Calculs financiers agricoles marocains avec type de sol.
 
 Fonction publique :
-  calculate_profit(crop: str, surface_ha: float) -> dict
+  calcul_profit(culture, surface_ha, type_sol) -> dict
 """
 
-# ---------------------------------------------------------------------------
-# Données métier Maroc 2024
-# ---------------------------------------------------------------------------
-CROPS = {
-    "tomate": {
-        "yield_kg_ha":  40_000,
-        "price_dh_kg":  1.80,
-        "cost_dh_ha":   15_000,
-    },
-    "ble": {
-        "yield_kg_ha":  3_500,
-        "price_dh_kg":  3.20,
-        "cost_dh_ha":   4_500,
-    },
-    "poivron": {
-        "yield_kg_ha":  28_000,
-        "price_dh_kg":  2.50,
-        "cost_dh_ha":   18_000,
-    },
-}
+SOL = {"argileux": 1.20, "sableux": 0.85, "limoneux": 1.10, "autre": 1.00}
 
-# Aliases pour accepter les variantes de noms
-ALIASES = {
-    "blé": "ble", "wheat": "ble", "قمح": "ble",
-    "tomato": "tomate", "طماطم": "tomate",
-    "pepper": "poivron", "فلفل": "poivron",
+OCP = {
+    "tomate":  {"r": 40000, "p": 1.80, "c": 15000, "risk": 0.15},
+    "ble":     {"r":  3500, "p": 3.20, "c":  4500, "risk": 0.10},
+    "poivron": {"r": 28000, "p": 2.50, "c": 18000, "risk": 0.22},
+    "oignon":  {"r": 35000, "p": 1.20, "c":  8000, "risk": 0.12},
 }
 
 
-def _normalize(crop: str) -> str:
-    """Normalise le nom de la culture (lowercase, alias)."""
-    key = crop.lower().strip()
-    return ALIASES.get(key, key)
-
-
-def calculate_profit(crop: str, surface_ha: float) -> dict:
+def calcul_profit(culture: str, surface_ha: float, type_sol: str = "autre") -> dict:
     """
-    Calcule le profit net pour une culture donnée.
+    Calcule le profit net pour une culture donnée avec facteur sol.
 
     Args:
-        crop:       Nom de la culture (tomate, ble/blé, poivron)
+        culture:    Nom de la culture (tomate, ble, poivron, oignon)
         surface_ha: Surface en hectares
+        type_sol:   Type de sol (argileux, sableux, limoneux, autre)
 
     Returns:
         {
-            "crop":           str,    # nom normalisé
-            "surface_ha":     float,
-            "revenue_dh":     float,  # chiffre d'affaires brut
-            "cost_dh":        float,  # coût total de production
-            "profit_dh":      float,  # bénéfice net
-            "profit_per_ha":  float,  # bénéfice net par hectare
-            "yield_kg":       float,  # production totale en kg
-            "roi_pct":        float,  # retour sur investissement (%)
+            "culture", "surface_ha", "type_sol",
+            "sol_multiplier", "revenu_brut",
+            "cout_total", "profit_net",
+            "alerte_j18", "meilleur_choix"
         }
 
-    Garantie : ne lève jamais d'exception — retourne toujours le bon format.
+    Garantie : ne lève jamais d'exception.
     """
     try:
-        key = _normalize(crop)
-        data = CROPS.get(key)
+        d = OCP.get(culture.lower(), OCP["ble"])
+        m = SOL.get(type_sol.lower(), 1.0)
 
-        if data is None:
-            # Culture inconnue : retour avec valeurs nulles et message
-            return {
-                "crop":          crop,
-                "surface_ha":    surface_ha,
-                "revenue_dh":    0.0,
-                "cost_dh":       0.0,
-                "profit_dh":     0.0,
-                "profit_per_ha": 0.0,
-                "yield_kg":      0.0,
-                "roi_pct":       0.0,
-                "error":         f"Culture '{crop}' inconnue. Cultures disponibles : {', '.join(CROPS)}",
-            }
-
-        yield_kg   = data["yield_kg_ha"]  * surface_ha
-        revenue_dh = yield_kg             * data["price_dh_kg"]
-        cost_dh    = data["cost_dh_ha"]   * surface_ha
-        profit_dh  = revenue_dh - cost_dh
-        roi_pct    = (profit_dh / cost_dh * 100) if cost_dh > 0 else 0.0
+        revenu = d["r"] * surface_ha * d["p"] * m
+        cout   = d["c"] * surface_ha
+        profit = (revenu - cout) * (1 - d["risk"])
 
         return {
-            "crop":          key,
-            "surface_ha":    surface_ha,
-            "revenue_dh":    round(revenue_dh, 2),
-            "cost_dh":       round(cost_dh, 2),
-            "profit_dh":     round(profit_dh, 2),
-            "profit_per_ha": round(profit_dh / surface_ha, 2) if surface_ha > 0 else 0.0,
-            "yield_kg":      round(yield_kg, 2),
-            "roi_pct":       round(roi_pct, 1),
+            "culture":        culture,
+            "surface_ha":     surface_ha,
+            "type_sol":       type_sol,
+            "sol_multiplier": m,
+            "revenu_brut":    round(revenu),
+            "cout_total":     round(cout),
+            "profit_net":     round(profit),
+            "alerte_j18":     round(cout * 0.30),
+            "meilleur_choix": profit > 30000,
         }
 
     except Exception as exc:
         return {
-            "crop":          crop,
-            "surface_ha":    surface_ha,
-            "revenue_dh":    0.0,
-            "cost_dh":       0.0,
-            "profit_dh":     0.0,
-            "profit_per_ha": 0.0,
-            "yield_kg":      0.0,
-            "roi_pct":       0.0,
-            "error":         str(exc),
+            "culture":        culture,
+            "surface_ha":     surface_ha,
+            "type_sol":       type_sol,
+            "sol_multiplier": 1.0,
+            "revenu_brut":    0,
+            "cout_total":     0,
+            "profit_net":     0,
+            "alerte_j18":     0,
+            "meilleur_choix": False,
+            "error":          str(exc),
         }
+
+
+# Alias pour compatibilité avec l'ancienne signature
+def calculate_profit(crop: str, surface_ha: float) -> dict:
+    return calcul_profit(crop, surface_ha)

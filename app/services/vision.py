@@ -172,3 +172,39 @@ def analyze_leaf(image_url: str) -> dict:
 def predict_disease(image_url: str) -> dict:
     """Alias de analyze_leaf() — même résultat, même format."""
     return analyze_leaf(image_url)
+
+
+# ---------------------------------------------------------------------------
+# Format réponse WhatsApp
+# ---------------------------------------------------------------------------
+def format_whatsapp_response(result: dict) -> str:
+    """
+    Génère un message WhatsApp structuré avec emojis à partir du résultat analyze_leaf.
+
+    Args:
+        result: dict retourné par analyze_leaf()
+
+    Returns:
+        Texte formaté prêt à envoyer via Twilio WhatsApp.
+    """
+    emoji = {
+        "mildiou":    "🔴",
+        "oidium":     "🟡",
+        "alternaria": "🟠",
+        "rouille":    "🟤",
+        "saine":      "🟢",
+    }.get(result.get("disease", "").lower(), "🔵")
+
+    conf = result.get("confidence", 0) * 100
+    disease = result.get("disease", "inconnue").capitalize()
+    treatment = result.get("treatment", "Consultez un agronome.")
+
+    return (
+        f"{emoji} *FELLAH.AI — Diagnostic*\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"Maladie : *{disease}*\n"
+        f"Fiabilité : *{conf:.0f}%*\n\n"
+        f"Traitement : {treatment}\n\n"
+        f"⚠️ Agissez dans les 48h pour sauver votre récolte.\n"
+        f"_FELLAH.AI — Intelligence du terroir_ 🌿"
+    )
