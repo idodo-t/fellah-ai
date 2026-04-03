@@ -1,5 +1,4 @@
 import re
-import random
 from fastapi import FastAPI, Form, Response, Depends
 from twilio.twiml.messaging_response import MessagingResponse
 from sqlalchemy.orm import Session
@@ -72,7 +71,7 @@ def get_db():
         db.close()
 
 @app.post("/webhook")
-async def whatsapp_webhook(
+def whatsapp_webhook(
     Body: str = Form(None),
     From: str = Form(None),
     MediaUrl0: str = Form(None),
@@ -152,7 +151,8 @@ async def whatsapp_webhook(
             prix_base = {"ble": 3500, "tomate": 15000, "orange": 12000, "olive": 9000}
             prix_unitaire = prix_base.get(culture_choisie, 8000) 
             
-            revenu_total = surface * prix_unitaire * random.uniform(1.8, 2.5) 
+            # Stabilisation pour démo : coefficients fixes au lieu de random
+            revenu_total = surface * prix_unitaire * 2.1
             cout_total = surface * (prix_unitaire * 0.4) 
             profit_final = revenu_total - cout_total
 
