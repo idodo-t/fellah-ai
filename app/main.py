@@ -15,6 +15,54 @@ init_db()
 
 app = FastAPI(title="FELLAH.AI - UNIVERSAL")
 
+# ---------------------------------------------------------
+# Configuration des conseils de diagnostic pour l'IA
+# ---------------------------------------------------------
+DISEASE_ADVICE = {
+    "mildiou": {
+        "name_fr": "Mildiou",
+        "advice_fr": "Appliquez un traitement fongicide et réduisez l'irrigation.",
+        "name_ar": "البياض الدقيقي",
+        "advice_ar": "قم بتطبيق مبيد فطري وقلل من الري.",
+        "image_url": "https://example.com/images/mildiou.jpg"
+    },
+    "healthy": {
+        "name_fr": "Plante saine",
+        "advice_fr": "Votre plante est en bonne santé. Continuez la surveillance habituelle.",
+        "name_ar": "نبات صحي",
+        "advice_ar": "النبات بصحة جيدة. تابع المراقبة المعتادة.",
+        "image_url": "https://example.com/images/healthy.jpg"
+    },
+    "saine": {
+        "name_fr": "Plante saine",
+        "advice_fr": "Votre plante est en bonne santé. Continuez la surveillance habituelle.",
+        "name_ar": "نبات صحي",
+        "advice_ar": "النبات بصحة جيدة. تابع المراقبة المعتادة.",
+        "image_url": "https://example.com/images/healthy.jpg"
+    },
+    "unknown_plant_or_disease": {
+        "name_fr": "Analyse incertaine / Culture non prise en charge",
+        "advice_fr": "Désolé, je n'ai pas pu identifier la culture ou la maladie avec certitude. Veuillez vous assurer que la photo est claire et bien éclairée, ou que la culture fait partie de celles que je peux analyser (ex: tomate).",
+        "name_ar": "تحليل غير مؤكد / محصول غير مدعوم",
+        "advice_ar": "عذراً، لم أتمكن من تحديد المحصول أو المرض بشكل مؤكد. يرجى التأكد من أن الصورة واضحة ومضاءة جيداً، أو أن المحصول من بين الأنواع التي يمكنني تحليلها (مثل الطماطم).",
+        "image_url": "https://example.com/images/question_mark.jpg"
+    },
+    "pepper__bell___bacterial_spot": {
+        "name_fr": "Tache bactérienne du poivron",
+        "advice_fr": "La tache bactérienne se manifeste par des lésions sombres. Utilisez des semences saines, évitez l'arrosage par aspersion et retirez les plantes infectées.",
+        "name_ar": "بقعة فلفل الجرس البكتيرية",
+        "advice_ar": "تظهر البقعة البكتيرية على شكل آفات داكنة. استخدم بذورًا صحية، تجنب الري بالرش، وأزل النباتات المصابة.",
+        "image_url": "https://example.com/images/pepper_bacterial_spot.jpg"
+    },
+    "pepper__bell___healthy": {
+        "name_fr": "Poivron sain",
+        "advice_fr": "Votre poivron est en excellente forme ! Maintenez un bon arrosage et un ensoleillement suffisant.",
+        "name_ar": "فلفل الجرس صحي",
+        "advice_ar": "فلفل الجرس الخاص بك في حالة ممتازة! حافظ على الري الجيد وأشعة الشمس الكافية.",
+        "image_url": "https://example.com/images/pepper_healthy.jpg"
+    }
+}
+
 # Dépendance pour la base de données
 def get_db():
     db = SessionLocal()
@@ -39,48 +87,42 @@ async def whatsapp_webhook(
         try:
             # 1. On appelle la VRAIE analyse de l'IA
             result = predict_disease(MediaUrl0)
-            disease_detected = result["disease"].lower() # ex: 'mildiou' ou 'healthy'
-            
-            # 2. On prépare des réponses stables selon le résultat
-            # On crée un petit dictionnaire pour traduire et donner des scores fixes
-            # Cela évite le hasard (random) tout en étant dynamique
-            scenarios = {
-                "mildiou": {
-                    "plante": "Tomate",
-                    "etat": "MILDIOU",
-                    "fiabilite": 94.2,
-                    "conseil": "Appliquez un traitement fongicide et réduisez l'irrigation."
-                },
-                "healthy": {
-                    "plante": "Tomate",
-                    "etat": "SAINE",
-                    "fiabilite": 98.1,
-                    "conseil": "Votre plante est en bonne santé. Continuez la surveillance habituelle."
-                },
-                "saine": { # Au cas où votre IA répond en français
-                    "plante": "Tomate",
-                    "etat": "SAINE",
-                    "fiabilite": 98.1,
-                    "conseil": "Votre plante est en bonne santé. Continuez la surveillance habituelle."
-                }
-            }
+            predicted_disease_tag = result.get("disease", "unknown_plant_or_disease").lower()
+            confidence = result.get("confidence", 0.0)
 
-            # 3. On récupère le scénario correspondant ou un défaut
-            res = scenarios.get(disease_detected, {
-                "plante": "Plante",
-                "etat": disease_detected.upper(),
-                "fiabilite": 89.5,
-                "conseil": "Consultez un expert pour confirmer ce diagnostic."
-            })
+            # 2. Vérification du tag et seuil de confiance
+            advice_data = DISEASE_ADVICE.get(predicted_disease_tag)
+            if advice_data is None or confidence < 0.75:
+                advice_data = DISEASE_ADVICE["unknown_plant_or_disease"]
+                predicted_disease_tag = "unknown_plant_or_disease"
 
-            # 4. On envoie la réponse
-            msg.body(
+            data_culture = "Inconnue"
+            if "tomato" in predicted_disease_tag or "mildiou" in predicted_disease_tag or "healthy" in predicted_disease_tag or "saine" in predicted_disease_tag:
+                data_culture = "Tomate"
+            elif "pepper" in predicted_disease_tag:
+                data_culture = "Poivron"
+
+            # 3. Construction de la réponse
+            response_text_fr = (
                 f"🔍 *DIAGNOSTIC FELLAH.AI*\n\n"
-                f"🌿 Culture : *{res['plante']}*\n"
-                f"🦠 État : *{res['etat']}*\n"
-                f"✅ Fiabilité : *{res['fiabilite']}%*\n\n"
-                f"💡 *Conseil :* {res['conseil']}"
+                f"🌿 Culture : *{data_culture}*\n"
+                f"🦠 État : *{advice_data['name_fr']}*\n"
+                f"✅ Fiabilité : *{confidence * 100:.1f}%*\n\n"
+                f"💡 *Conseil :* {advice_data['advice_fr']}"
             )
+
+            response_text_ar = (
+                f"🔎 تشخيص فلاح.الذكاء الاصطناعي\n"
+                f"المحصول : *{ 'طماطم' if data_culture == 'Tomate' else 'فلفل' if data_culture == 'Poivron' else 'غير معروف'}*\n"
+                f"الحالة : *{advice_data['name_ar']}*\n"
+                f"موثوقية : *{confidence * 100:.1f}%*\n\n"
+                f"💡 نصيحة : {advice_data['advice_ar']}"
+            )
+
+            msg.body(response_text_fr + "\n\n" + response_text_ar)
+            if advice_data.get("image_url"):
+                msg.media(advice_data["image_url"])
+
         except Exception as e:
             print(f"Erreur Vision: {e}")
             msg.body("❌ Erreur d'analyse. Réessayez avec une photo nette.")
