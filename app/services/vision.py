@@ -64,28 +64,22 @@ def _load_model():
 # ---------------------------------------------------------------------------
 def _mock_analyze(image_url: str) -> dict:
     """
-    Mock réaliste avec variété maximale pour hackathon.
-    Simule un vrai modèle YOLOv8 entraîné sur PlantVillage.
+    Mock réaliste avec diagnostic déterministe pour cohérence démo.
+    Utilise l'URL comme seed pour garantir le même résultat par image.
     """
     import random
 
+    # Seed basé sur l'URL pour cohérence par image
+    random.seed(hash(image_url))
+
     scenarios = [
-        # Maladies graves — déclenchent une alerte urgente
-        {"disease": "mildiou",    "confidence": round(random.uniform(0.88, 0.96), 2)},
-        {"disease": "mildiou",    "confidence": round(random.uniform(0.82, 0.91), 2)},
-        {"disease": "oidium",     "confidence": round(random.uniform(0.79, 0.93), 2)},
-        {"disease": "alternaria", "confidence": round(random.uniform(0.71, 0.87), 2)},
-        {"disease": "rouille",    "confidence": round(random.uniform(0.75, 0.90), 2)},
-        # Plante saine — majorité des cas (réaliste)
-        {"disease": "saine",      "confidence": round(random.uniform(0.91, 0.99), 2)},
-        {"disease": "saine",      "confidence": round(random.uniform(0.88, 0.97), 2)},
-        {"disease": "saine",      "confidence": round(random.uniform(0.93, 0.99), 2)},
+        {"disease": "mildiou", "confidence": 0.94},
+        {"disease": "healthy", "confidence": 0.98},
+        {"disease": "saine", "confidence": 0.98},
     ]
 
-    # Poids : 40% maladie, 60% saine (réaliste terrain)
-    weights = [1, 1, 1, 1, 1, 2, 2, 2]
-    pick = random.choices(scenarios, weights=weights, k=1)[0].copy()
-    pick["treatment"] = TREATMENTS[pick["disease"]]
+    pick = random.choice(scenarios)
+    pick["treatment"] = TREATMENTS.get(pick["disease"], DEFAULT_TREATMENT)
     return pick
 
 
