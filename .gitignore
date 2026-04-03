@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Environment Variables (NEVER commit secrets)
 .env
 .env.local
@@ -30,3 +31,10 @@ Thumbs.db
 /tmp/
 ml_models/*.pt
 *.mp3
+=======
+__pycache__/
+*.pyc
+.venv/
+fell_ai.db
+static/
+>>>>>>> 34b485b (Remove pycache from tracking and add .gitignore)
