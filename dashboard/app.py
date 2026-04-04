@@ -714,10 +714,10 @@ def main():
     df              = render_sidebar(df_raw, online)
 
     if is_mock:
-        st.info(
-            "Mode demonstration — donnees simulees (DB vide ou inaccessible)",
-            icon="&#127917;",
-        )
+       st.info(
+    "Mode demonstration — donnees simulees (DB vide ou inaccessible)",
+    icon="🎤", # Correction : utilisez le caractère emoji direct
+    )
 
     render_header(online, is_mock)
 

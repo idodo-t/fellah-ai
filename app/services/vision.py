@@ -14,11 +14,17 @@ import os
 import logging
 import tempfile
 import urllib.request
+import urllib.error
+import urllib.parse
+import base64
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+TWILIO_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
 # ---------------------------------------------------------------------------
 # Données métier : traitements recommandés par maladie
@@ -86,13 +92,47 @@ def _mock_analyze(image_url: str) -> dict:
 # ---------------------------------------------------------------------------
 # Analyse réelle avec YOLOv8
 # ---------------------------------------------------------------------------
+def fetch_url_bytes(image_url: str) -> bytes:
+    """Télécharge le contenu binaire d'un URL en gérant l'auth Basic Twilio si nécessaire."""
+    headers = {
+        "User-Agent": "FELLAH.AI/1.0",
+        "Accept": "image/jpeg,image/png,*/*;q=0.8",
+    }
+
+    req = urllib.request.Request(image_url, headers=headers)
+    if TWILIO_SID and TWILIO_TOKEN:
+        auth_token = base64.b64encode(f"{TWILIO_SID}:{TWILIO_TOKEN}".encode("utf-8")).decode("ascii")
+        req.add_header("Authorization", f"Basic {auth_token}")
+
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            return resp.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            message = (
+                "401 Unauthorized: verifiez TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN dans .env "
+                "et assurez-vous que l'URL de media est encore valide."
+            )
+            logger.error("%s URL=%s", message, image_url)
+            raise RuntimeError(message) from exc
+        logger.error("Twilio media download failed for %s: %d %s", image_url, exc.code, exc.reason)
+        raise
+    except Exception as exc:
+        logger.error("fetch_url_bytes failed for %s: %s", image_url, exc)
+        raise
+
+
 def _yolo_analyze(image_url: str, model) -> dict:
     """Télécharge l'image et lance l'inférence YOLO."""
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+    image_ext = os.path.splitext(urllib.parse.urlparse(image_url).path)[1] or ".jpg"
+    with tempfile.NamedTemporaryFile(suffix=image_ext, delete=False) as tmp:
         tmp_path = tmp.name
 
     try:
-        urllib.request.urlretrieve(image_url, tmp_path)
+        image_bytes = fetch_url_bytes(image_url)
+        with open(tmp_path, "wb") as f:
+            f.write(image_bytes)
+
         results = model(tmp_path, verbose=False)
 
         boxes = results[0].boxes
